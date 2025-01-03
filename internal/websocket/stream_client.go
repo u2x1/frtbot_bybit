@@ -125,8 +125,8 @@ func (c *StreamClient) messageHandler() {
 
 			var event types.EventData
 			if err := json.Unmarshal(message, &event); err == nil {
-				slog.Printf("event: %+v", event)
 				if event.Topic == "order.linear" {
+					slog.Printf("event: %+v", event)
 					if len(event.Data) == 0 {
 						continue
 					}
@@ -172,6 +172,8 @@ func (c *StreamClient) messageHandler() {
 					slog.Printf("auth event return: %+v", event.Success)
 				} else if event.Op == "pong" {
 					continue
+				} else {
+					slog.Printf("event: %+v", event)
 				}
 			} else {
 				slog.Printf("error: %+v", err)
