@@ -1,0 +1,14 @@
+{
+    "api_key": "API_KEY",
+    "hmac_secret": "HMAC_SECRET",
+    "margin": 10,
+    "first_order_time_offset_ms": -100,
+    "test_mode": true,
+    "test_api_key": "TEST_API_KEY",
+    "test_hmac_secret": "TEST_HMAC_SECRET",
+    "min_funding_rate_percent": 0.8,
+    "stop_percent": 1.5,
+    "take_profit_percent": 0.5,
+    "margin_type": "ISOLATED",
+    "leverage": 10
+}
