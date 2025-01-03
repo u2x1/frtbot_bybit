@@ -150,22 +150,80 @@ func (c *StreamClient) messageHandler() {
 						stopPrice = utils.Truncate(priceFloat*(1+c.config.StopRatio), lastTrade.MinPrice)
 						takeProfitPrice = utils.Truncate(priceFloat*(1-c.config.TakeProfitRatio), lastTrade.MinPrice)
 					}
-
-					c.tradeClient.PlaceReduceOnlyLimitOrder(
-						lastTrade.Symbol,   // symbol
-						lastTrade.StopSide, // side
-						lastTrade.Quantity, // quantity
-						takeProfitPrice,    // take profit price
-					)
-
-					c.tradeClient.CreateStopOrder(
-						lastTrade.Symbol,   // symbol
-						lastTrade.StopSide, // side
-						lastTrade.Quantity, // quantity
-						stopPrice,          // stop price
-					)
-					slog.Println("setting LastTrade to nil")
-					c.tradeClient.LastTrade = nil
+					go func() {
+						c.tradeClient.PlaceReduceOnlyLimitOrder(
+							lastTrade.Symbol,   // symbol
+							lastTrade.StopSide, // side
+							lastTrade.Quantity, // quantity
+							takeProfitPrice,    // take profit price
+						)
+					}()
+					go func() {
+						c.tradeClient.CreateStopOrder(
+							lastTrade.Symbol,   // symbol
+							lastTrade.StopSide, // side
+							lastTrade.Quantity, // quantity
+							stopPrice,          // stop price
+						)
+					}()
+					if c.config.BreakevenEnabled {
+						go func() {
+							tick := c.config.BreakevenWindowSize
+							placeDuration := c.config.BreakevenPlaceDuration
+							var delta float64
+							if lastTrade.StopSide == types.TradeBuySide {
+								delta = priceFloat * -c.config.BreakevenPercent
+							} else {
+								delta = priceFloat * c.config.BreakevenPercent
+							}
+							delta = utils.Truncate(delta, lastTrade.MinPrice)
+							rawPrice := priceFloat
+							cost := rawPrice + delta
+							for i := 0; i < placeDuration; i++ {
+								price := c.restClient.GetLatestPrice(lastTrade.Symbol)
+								if price != -1 {
+									if lastTrade.StopSide == types.TradeBuySide {
+										if price < cost {
+											tick--
+											slog.Printf("current(%f) < cost(%f) + delta(%f), tick: %d", price, rawPrice, delta, tick)
+											if tick == 0 {
+												slog.Println("breakeven reached, creating stop order")
+												c.tradeClient.CreateStopOrder(
+													lastTrade.Symbol,   // symbol
+													lastTrade.StopSide, // side
+													lastTrade.Quantity, // quantity
+													cost,               // stop price
+												)
+												break
+											}
+										} else {
+											tick = c.config.BreakevenWindowSize
+											slog.Printf("current(%f) >= cost(%f) + delta(%f), BAD, tick reset", price, rawPrice, delta)
+										}
+									} else {
+										if price > cost {
+											tick--
+											slog.Printf("current(%f) > cost(%f) + delta(%f), tick: %d", price, rawPrice, delta, tick)
+											if tick == 0 {
+												slog.Println("breakeven reached, creating stop order")
+												c.tradeClient.CreateStopOrder(
+													lastTrade.Symbol,   // symbol
+													lastTrade.StopSide, // side
+													lastTrade.Quantity, // quantity
+													cost,               // stop price
+												)
+												break
+											}
+										} else {
+											tick = c.config.BreakevenWindowSize
+											slog.Printf("current(%f) <= cost(%f) + delta(%f), BAD, tick reset", price, rawPrice, delta)
+										}
+									}
+								}
+								time.Sleep(1 * time.Second)
+							}
+						}()
+					}
 				} else if event.Op == "subscribe" {
 					slog.Printf("subscribe event return: %+v", event.Success)
 				} else if event.Op == "auth" {

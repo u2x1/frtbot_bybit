@@ -52,6 +52,7 @@ func Ticker(offset time.Duration, interval time.Duration, stopTime time.Time) {
 	time.Sleep(now.Truncate(interval).Add(interval + offset).Sub(now))
 	stopTime = stopTime.Add(offset)
 	t := time.NewTicker(interval)
+	defer t.Stop()
 	for {
 		now = <-t.C
 		if now.After(stopTime) {

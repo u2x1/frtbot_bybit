@@ -22,4 +22,7 @@ go run main.go
 | take_profit_percent | float64 | 止盈百分比(%) |
 | margin_type | string | 账户保证金类型，可选值：ISOLATED(逐仓), REGULAR(全仓), PORTFOLIO(组合保证金) |
 | leverage | int | 杠杆倍数 |
-
+| breakeven_enabled | bool | 是否启用保本止损 |
+| breakeven_percent | float64 | 保本止损百分比(%)，0% 表示成本价(不计算手续费) |
+| breakeven_window_size | int | 保本止损窗口大小(秒) |
+| breakeven_place_duration | int | 在下单后，检测"是否进行保本止损"的持续时间(秒) |

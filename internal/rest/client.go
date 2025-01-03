@@ -223,6 +223,36 @@ func (c *RestClient) GetAllSymbols() ([]types.Exchange, error) {
 	return symbols, nil
 }
 
+func (c *RestClient) GetLatestPrice(symbol string) float64 {
+	endPoint := "/v5/market/tickers"
+
+	resp, err := c.getRequest("category=linear&symbol="+symbol, endPoint)
+	if err != nil {
+		return -1
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Result struct {
+			List []struct {
+				LastPrice float64 `json:"lastPrice,string"`
+			}
+		}
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		rlog.Printf("failed to decode response: %v", err)
+		return -1
+	}
+
+	if len(result.Result.List) == 0 {
+		rlog.Printf("no price data found for %s", symbol)
+		return -1
+	}
+
+	return result.Result.List[0].LastPrice
+}
+
 func (c *RestClient) GetPremiumIndex(symbol string) (types.PremiumIndex, error) {
 	url := fmt.Sprintf("%s/fapi/v1/premiumIndex?symbol=%s", binanceBaseURL, symbol)
 

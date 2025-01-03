@@ -10,5 +10,9 @@
     "stop_percent": 1.5,
     "take_profit_percent": 0.5,
     "margin_type": "ISOLATED",
-    "leverage": 10
+    "leverage": 10,
+    "breakeven_enabled": true,
+    "breakeven_percent": 0.01,
+    "breakeven_window_size": 10,
+    "breakeven_place_duration": 180
 }
